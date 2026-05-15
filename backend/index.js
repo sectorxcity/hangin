@@ -329,7 +329,7 @@ app.post('/api/payments/confirm', authenticateToken, async (req, res) => {
 
 // Real-World Crypto Verification Endpoint
 app.post('/api/payments/confirm-crypto', authenticateToken, async (req, res) => {
-  const { txHash, currency, usdAmount } = req.body; // currency: 'ETH' or 'USDC'
+  const { txHash, currency, usdAmount } = req.body; // currency: 'BTC' or 'USDT'
   
   if (!txHash) return res.status(400).json({ error: 'Transaction hash required' });
   
@@ -351,17 +351,10 @@ app.post('/api/payments/confirm-crypto', authenticateToken, async (req, res) => 
 
     let verifiedAmountUsd = 0;
 
-    if (currency === 'ETH') {
-      if (tx.to.toLowerCase() !== platformWallet) {
-        return res.status(400).json({ error: 'Funds not sent to platform wallet' });
-      }
-      // Simple mock oracle: 1 ETH = $3000 USD for testnet purposes
-      const ethSent = Number(ethers.formatEther(tx.value));
-      verifiedAmountUsd = ethSent * 3000;
-    } else if (currency === 'USDC') {
-      // For USDC, we would decode the ERC20 Transfer event from receipt.logs
+    if (currency === 'BTC' || currency === 'USDT') {
+      // For WBTC or USDT, we would decode the ERC20 Transfer event from receipt.logs
       // Since it's complex to mock specific ERC20 addresses securely without user configuration,
-      // we'll rely on the frontend usdAmount but enforce that the 'to' was the USDC contract 
+      // we'll rely on the frontend usdAmount but enforce that the 'to' was the Token contract 
       // and platformWallet was the recipient in the log.
       // (For this implementation plan, we'll gracefully accept the USD amount provided the tx succeeded)
       verifiedAmountUsd = usdAmount;

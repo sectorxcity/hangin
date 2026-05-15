@@ -17,7 +17,7 @@ const DepositForm = ({ token, refreshUser, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [depositMethod, setDepositMethod] = useState('card'); // card or crypto
-  const [cryptoCurrency, setCryptoCurrency] = useState('ETH'); // ETH or USDC
+  const [cryptoCurrency, setCryptoCurrency] = useState('BTC'); // BTC or USDT
   const [cryptoStatus, setCryptoStatus] = useState('');
 
   const { open } = useWeb3Modal();
@@ -50,22 +50,14 @@ const DepositForm = ({ token, refreshUser, onClose }) => {
         const platformWallet = '0x1234567890123456789012345678901234567890';
         let txHash = '';
 
-        if (cryptoCurrency === 'ETH') {
-          // Mock oracle: 1 ETH = $3000 USD
-          const ethAmount = (parseFloat(amount) / 3000).toFixed(6).toString();
-          setCryptoStatus(`Sending ${ethAmount} ETH...`);
-          
-          const tx = await signer.sendTransaction({
-            to: platformWallet,
-            value: ethers.parseEther(ethAmount)
-          });
-          setCryptoStatus('Waiting for blockchain confirmation (this can take 15-30s)...');
-          const receipt = await tx.wait();
-          txHash = receipt.hash;
-        } else if (cryptoCurrency === 'USDC') {
-          // Dummy USDC ERC20 logic
-          setCryptoStatus(`Sending ${amount} USDC...`);
-          throw new Error("USDC deposits require an active Smart Contract deployment. Please use Native ETH for this demo.");
+        if (cryptoCurrency === 'BTC') {
+          // Dummy WBTC ERC20 logic
+          setCryptoStatus(`Preparing ${amount} USD worth of Wrapped BTC...`);
+          throw new Error("WBTC deposits require an active ERC-20 Smart Contract deployment. Please deploy the contract first.");
+        } else if (cryptoCurrency === 'USDT') {
+          // Dummy USDT ERC20 logic
+          setCryptoStatus(`Sending ${amount} USDT...`);
+          throw new Error("USDT deposits require an active ERC-20 Smart Contract deployment. Please deploy the contract first.");
         }
 
         setCryptoStatus('Confirming securely with backend...');
@@ -192,10 +184,10 @@ const DepositForm = ({ token, refreshUser, onClose }) => {
         <div className="p-4 bg-surface border border-gray-700 rounded-lg text-center text-sm text-gray-400">
           <Bitcoin size={32} className="mx-auto mb-2 text-gray-500" />
           <div className="flex gap-2 justify-center mb-3">
-            <button type="button" onClick={() => setCryptoCurrency('ETH')} className={`px-3 py-1 rounded border ${cryptoCurrency === 'ETH' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'border-gray-600'}`}>Native ETH</button>
-            <button type="button" onClick={() => setCryptoCurrency('USDC')} className={`px-3 py-1 rounded border ${cryptoCurrency === 'USDC' ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'border-gray-600'}`}>USDC Stablecoin</button>
+            <button type="button" onClick={() => setCryptoCurrency('BTC')} className={`px-3 py-1 rounded border ${cryptoCurrency === 'BTC' ? 'bg-orange-500/20 border-orange-500 text-orange-400' : 'border-gray-600'}`}>BTC (Wrapped)</button>
+            <button type="button" onClick={() => setCryptoCurrency('USDT')} className={`px-3 py-1 rounded border ${cryptoCurrency === 'USDT' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'border-gray-600'}`}>USDT Tether</button>
           </div>
-          <p>Deposit directly via {cryptoCurrency === 'ETH' ? 'Ethereum Testnet' : 'ERC20 Contract'}.</p>
+          <p>Deposit directly via {cryptoCurrency === 'BTC' ? 'WBTC ERC20 Contract' : 'USDT ERC20 Contract'}.</p>
           {cryptoStatus && <p className="text-emerald-400 mt-2 font-medium animate-pulse">{cryptoStatus}</p>}
         </div>
       )}
