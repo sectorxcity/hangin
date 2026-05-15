@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const db = require('./db');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
 require('dotenv').config();
