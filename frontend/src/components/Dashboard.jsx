@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Clock, CheckCircle, ShieldCheck, Info, CreditCard, Bitcoin } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { BrowserProvider } from 'ethers';
+import { BrowserProvider, ethers } from 'ethers';
 import { useWeb3Modal, useWeb3ModalProvider, useWeb3ModalAccount } from '@web3modal/ethers/react';
 
 // Stripe publishable key
@@ -17,6 +17,7 @@ const DepositForm = ({ token, refreshUser, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [depositMethod, setDepositMethod] = useState('card'); // card or crypto
+  const [cryptoCurrency, setCryptoCurrency] = useState('ETH'); // ETH or USDC
   const [cryptoStatus, setCryptoStatus] = useState('');
 
   const { open } = useWeb3Modal();
@@ -41,33 +42,46 @@ const DepositForm = ({ token, refreshUser, onClose }) => {
 
     try {
       if (depositMethod === 'crypto') {
-        setCryptoStatus('Connecting to Web3 Wallet...');
+        setCryptoStatus(`Preparing ${cryptoCurrency} Deposit...`);
         const provider = new BrowserProvider(walletProvider);
-        
         const signer = await provider.getSigner();
-        const address = await signer.getAddress();
         
-        setCryptoStatus('Requesting Signature for Deposit...');
-        
-        // Construct the message to sign
-        const message = `Confirm deposit of $${parseFloat(amount).toFixed(2)} to Hangin Escrow.\nWallet: ${address}\nNonce: ${Date.now()}`;
-        
-        // Request the user to sign the message
-        await signer.signMessage(message);
+        // Mock PLATFORM_WALLET for frontend testnet
+        const platformWallet = '0x1234567890123456789012345678901234567890';
+        let txHash = '';
 
-        setCryptoStatus('Confirming with Server...');
+        if (cryptoCurrency === 'ETH') {
+          // Mock oracle: 1 ETH = $3000 USD
+          const ethAmount = (parseFloat(amount) / 3000).toFixed(6).toString();
+          setCryptoStatus(`Sending ${ethAmount} ETH...`);
+          
+          const tx = await signer.sendTransaction({
+            to: platformWallet,
+            value: ethers.parseEther(ethAmount)
+          });
+          setCryptoStatus('Waiting for blockchain confirmation (this can take 15-30s)...');
+          const receipt = await tx.wait();
+          txHash = receipt.hash;
+        } else if (cryptoCurrency === 'USDC') {
+          // Dummy USDC ERC20 logic
+          setCryptoStatus(`Sending ${amount} USDC...`);
+          throw new Error("USDC deposits require an active Smart Contract deployment. Please use Native ETH for this demo.");
+        }
+
+        setCryptoStatus('Confirming securely with backend...');
         
-        const confirmRes = await fetch('http://localhost:3001/api/payments/confirm', {
+        const confirmRes = await fetch('http://localhost:3001/api/payments/confirm-crypto', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ amount: parseFloat(amount) })
+          body: JSON.stringify({ txHash, currency: cryptoCurrency, usdAmount: parseFloat(amount) })
         });
         
+        const data = await confirmRes.json();
         if(confirmRes.ok) {
           await refreshUser();
           onClose();
         } else {
-          throw new Error('Failed to confirm crypto deposit on server');
+          throw new Error(data.error || 'Failed to confirm crypto deposit on server');
         }
       } else {
         // Stripe flow
@@ -177,7 +191,11 @@ const DepositForm = ({ token, refreshUser, onClose }) => {
       ) : (
         <div className="p-4 bg-surface border border-gray-700 rounded-lg text-center text-sm text-gray-400">
           <Bitcoin size={32} className="mx-auto mb-2 text-gray-500" />
-          <p>Connect your Web3 wallet (via WalletConnect, MetaMask, etc) to deposit stablecoins (USDC/USDT) or Ethereum.</p>
+          <div className="flex gap-2 justify-center mb-3">
+            <button type="button" onClick={() => setCryptoCurrency('ETH')} className={`px-3 py-1 rounded border ${cryptoCurrency === 'ETH' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'border-gray-600'}`}>Native ETH</button>
+            <button type="button" onClick={() => setCryptoCurrency('USDC')} className={`px-3 py-1 rounded border ${cryptoCurrency === 'USDC' ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'border-gray-600'}`}>USDC Stablecoin</button>
+          </div>
+          <p>Deposit directly via {cryptoCurrency === 'ETH' ? 'Ethereum Testnet' : 'ERC20 Contract'}.</p>
           {cryptoStatus && <p className="text-emerald-400 mt-2 font-medium animate-pulse">{cryptoStatus}</p>}
         </div>
       )}

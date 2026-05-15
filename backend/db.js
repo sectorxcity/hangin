@@ -51,6 +51,18 @@ const db = new sqlite3.Database(dbPath, (err) => {
         FOREIGN KEY(seller_id) REFERENCES users(id)
       )
     `);
+
+    // Create Crypto Deposits Table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS crypto_deposits (
+        tx_hash TEXT PRIMARY KEY,
+        user_id INTEGER,
+        amount REAL,
+        currency TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+      )
+    `);
   }
 });
 
